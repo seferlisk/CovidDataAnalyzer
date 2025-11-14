@@ -1,0 +1,14 @@
+# Ignore files/folders from other projects
+CovidDataAnalyzer/
+Exercise_2/
+exercise 30-10-25 (titanic).ipynb
+exercise 4-11-25 (titanic).ipynb
+intro_to_pandas.ipynb
+matplotlib_titanic.ipynb
+
+# Ignore Jupyter Notebook checkpoints (temporary files)
+.ipynb_checkpoints/
+
+# Ignore PyCharm/IDE configuration files
+.idea/
+*.pyc
