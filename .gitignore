@@ -1,14 +1,39 @@
-# Ignore files/folders from other projects
-CovidDataAnalyzer/
-Exercise_2/
-exercise 30-10-25 (titanic).ipynb
-exercise 4-11-25 (titanic).ipynb
-intro_to_pandas.ipynb
-matplotlib_titanic.ipynb
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.so
 
-# Ignore Jupyter Notebook checkpoints (temporary files)
+# Virtual environments
+venv/
+.env/
+.env*/
+
+# Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
-# Ignore PyCharm/IDE configuration files
+# Data files
+*.csv
+*.tsv
+*.xlsx
+
+# Images & plots
+*.png
+*.jpg
+*.jpeg
+
+# Logs
+*.log
+
+# IDE
 .idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Ignore PyCharm/IDE configuration files
 *.pyc
