@@ -1,3 +1,6 @@
+![Project Banner](covid.png))
+
+
 # CovidDataAnalyzer
 
 A Python project that loads and analyzes COVID-19 data using Pandas.
