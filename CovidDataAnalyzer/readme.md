@@ -1,4 +1,4 @@
-![Project Banner](covid.png))
+![Project Banner](covid.png)
 
 
 # CovidDataAnalyzer
