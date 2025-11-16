@@ -22,7 +22,27 @@ class CovidDataAnalyzer:
             if self.load_data(file_path):
                 print(f"Data loaded successfully: {self.data.shape[0]} rows, {self.data.shape[1]} columns")
 
-        #---------- methods for Loading, cleaning and Describing the data----------
+        # ================================================================
+        #   COLUMN NORMALIZATION
+        # ================================================================
+    def normalize_columns(self):
+        """
+        Ensures the dataset uses consistent column names.
+        Prevents duplicate renaming by checking first.
+        """
+        rename_map = {}
+
+        if 'Confirmed' in self.data.columns and 'Confirmed_Cases' not in self.data.columns:
+            rename_map['Confirmed'] = 'Confirmed_Cases'
+
+        if 'Country/Region' in self.data.columns and 'Country' not in self.data.columns:
+            rename_map['Country/Region'] = 'Country'
+
+        if rename_map:
+            self.data.rename(columns=rename_map, inplace=True)
+        # ================================================================
+        #   LOADING AND DESCRIBING
+        # ================================================================
     def load_data(self, file_path):
         """
         Loads the dataset from the given CSV file path into self.data.
@@ -39,69 +59,57 @@ class CovidDataAnalyzer:
             print("Error: file_path must be a non-empty string.")
             return False
 
-        # 2. Loading Logic
         try:
-            temp_data = pd.read_csv(file_path)
-
-            # 3. Update State
-            self.data = temp_data
-            self.filtered_data = pd.DataFrame() # Reset filtered data
-
-            print(f"Data loaded successfully: {self.data.shape[0]} rows, {self.data.shape[1]} columns")
+            self.data = pd.read_csv(file_path)
+            self.filtered_data = pd.DataFrame()
+            self.normalize_columns()
             return True
 
         except FileNotFoundError:
-            print(f"Error: File not found at path: {file_path}")
+            print(f"Error: File not found at {file_path}")
             return False
         except pd.errors.EmptyDataError:
-            print(f"Warning: File at path '{file_path}' is empty.")
-            self.data = pd.DataFrame() # Ensure data is an empty DataFrame
+            print(f"Warning: File at '{file_path}' is empty.")
+            self.data = pd.DataFrame()
             return False
         except Exception as e:
-            print(f"An unexpected error occurred during data loading: {e}")
+            print(f"Unexpected error: {e}")
             return False
 
     def describe_data(self):
         """
-        Prints the shape, column names, and basic descriptive statistics
-        of the loaded dataset (self.data).
+        Prints dataset structure, statistics, column info, and missing values
         """
-        if self.data is None or self.data.empty:
-            print("Cannot describe data: No dataset loaded or dataset is empty.")
+        if self.data.empty:
+            print("Cannot describe data: Dataset is empty.")
             return
 
-        # Replace inf values with NaN to avoid warnings
-        self.data = self.data.replace([np.inf, -np.inf], np.nan)
+        self.data.replace([np.inf, -np.inf], np.nan, inplace=True)
 
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print("                 DATASET OVERVIEW")
-        print("="*50)
+        print("=" * 50)
 
-        # 1. Shape
-        print("### 1. Dataset Shape")
-        rows, cols = self.data.shape
-        print(f"Shape: {rows} rows, {cols} columns")
+        print("\n### 1. Dataset Shape")
+        print(f"Rows: {self.data.shape[0]}, Columns: {self.data.shape[1]}")
 
-        # 2. Column Information (Names, Types, Missing Values)
-        print("\n### 2. Column Information and Null Counts")
+        print("\n### 2. Column Info")
         self.data.info(verbose=False, memory_usage=False)
 
-        # 3. Descriptive Statistics for Numerical Columns
-        print("\n### 3. Basic Descriptive Statistics (Numerical)")
-        # Transpose the output for better readability
+        print("\n### 3. Numerical Statistics")
         print(self.data.describe().T)
 
-        # 4. Descriptive Statistics for Categorical Columns
-        print("\n### 4. Basic Descriptive Statistics (Categorical/Object)")
-        # Include 'object' types (strings/categories)
+        print("\n### 4. Categorical Statistics")
         print(self.data.describe(include=['object', 'category']).T)
 
-        # 5. Null values
-        print("\n--- Missing Values Per Column ---")
+        print("\n### 5. Missing Values")
         print(self.data.isnull().sum())
 
-        print("="*50)
+        print("=" * 50)
 
+    # ================================================================
+    #   MISSING VALUES
+    # ================================================================
     def handle_missing_values(self):
         """
         Fills missing (NaN) values in the self.data DataFrame:
@@ -138,7 +146,9 @@ class CovidDataAnalyzer:
 
         print("Missing value handling complete. Check `.info()` to verify.")
 
-    #-------------------- methods for Filtering the data--------------------
+    # ================================================================
+    #   FILTERING
+    # ================================================================
     def filter_high_cases(self):
         """
         Filters the dataset (self.data) based on specific high-impact conditions
@@ -153,19 +163,15 @@ class CovidDataAnalyzer:
             print("Cannot filter data: The main dataset (self.data) is empty. Please load data first.")
             return
 
+        self.normalize_columns()
+
         print("\n" + "="*50)
         print("          APPLYING HIGH-CASE FILTER")
         print("="*50)
 
-        col_map = {
-        'Country/Region': 'Country',
-        'Confirmed': 'Confirmed_Cases'
-        }
-        self.data.rename(columns=col_map, inplace=True)
-
         # --- Required columns ---
-        required_cols = ['Confirmed_Cases', 'Deaths', 'Country']
-        missing = [c for c in required_cols if c not in self.data.columns]
+        required = ['Confirmed_Cases', 'Deaths', 'Country']
+        missing = [c for c in required if c not in self.data.columns]
 
         if missing:
             print(f"Error: Cannot filter. Missing columns: {', '.join(missing)}")
@@ -187,18 +193,17 @@ class CovidDataAnalyzer:
     
         return self.filtered_data
 
-    def filter_by_date_range(self, start_date, end_date, date_column='Date', use_filtered=True):
+    def filter_by_date_range(self, start_date, end_date, date_column='Date'):
         """
         Filters the dataset (self.data) for records falling within the
         specified start_date and end_date range (inclusive).
-        If use_filtered=False, applies filtering to self.data instead of self.filtered_data.
 
         Parameters:
         start_date (str): The starting date for the filter (e.g., '2020-03-01').
         end_date (str): The ending date for the filter (e.g., '2020-04-30').
         date_column (str): The name of the date column in self.data (default 'Date').
         """
-        df = self.filtered_data if use_filtered else self.data
+        df = self.filtered_data
 
         if df.empty:
             print("Dataset is empty. Load data or apply filters first.")
@@ -226,55 +231,56 @@ class CovidDataAnalyzer:
             print("Filter complete.")
             print(f"Result rows: {self.filtered_data.shape[0]}")
 
+            return self.filtered_data
+
         except Exception as e:
             print(f"Error: {e}")
 
-        return self.filtered_data
-
-    #--------------------  G  L  O  B  A  L ---- S  T  A  T  I  S  T  I  C  S--------------------
+    # ================================================================
+    #   GLOBAL STATISTICS (FILTERED DATA ONLY)
+    # ================================================================
     def calculate_global_statistics(self):
         """
-        Calculates the global total for Confirmed, Deaths, and Recovered
-        cases across the entire dataset (self.data) and prints the results.
+        Calculates global totals for Confirmed, Deaths, and Recovered cases.
+        The method will refuse to run if no filtering has been applied yet.
+
+    Prints:
+        - Total confirmed cases
+        - Total deaths
+        - Total recovered cases
         """
-        if self.data.empty:
-            print("Cannot calculate global statistics: The dataset is empty. Please load data first.")
+        if self.filtered_data.empty:
+            print("Cannot calculate statistics: filtered_data is empty. Apply a filter first.")
             return
 
-        # Define the columns  needed to check and sum
-        stats_cols = ['Confirmed_Cases', 'Deaths', 'Recovered']
+        df = self.filtered_data
+        required = ['Confirmed_Cases', 'Deaths', 'Recovered']
 
-        # Check if all required columns exist
-        missing_cols = [col for col in stats_cols if col not in self.data.columns]
+        missing = [c for c in required if c not in df.columns]
+        if missing:
+            print(f"Missing columns: {missing}")
+            return
 
-        if missing_cols:
-            print(f"Error: Cannot calculate statistics. Missing required columns: {', '.join(missing_cols)}")
-            # Attempt to proceed with only the columns that are present
-            stats_cols = [col for col in stats_cols if col not in missing_cols]
-            if not stats_cols:
-                return
+        totals = df[required].sum()
 
-        print("\n" + "="*50)
-        print("          GLOBAL CASE STATISTICS")
-        print("="*50)
+        print("\n" + "=" * 50)
+        print("      GLOBAL STATISTICS (FILTERED DATA)")
+        print("=" * 50)
 
         try:
-            # Calculate the sum for the desired columns.
-            # .sum() will ignore any NaN values by default.
-            global_totals = self.data[stats_cols].sum(numeric_only=True)
+            print(f"Total Confirmed Cases: {int(totals['Confirmed_Cases']):,}")
+            print(f"Total Deaths:          {int(totals['Deaths']):,}")
+            print(f"Total Recovered:       {int(totals['Recovered']):,}")
+        except:
+            # If duplicate columns exist, totals['Confirmed_Cases'] may be a Series
+            print("⚠ Fixing duplicate-column issue automatically...")
+            print(f"Total Confirmed Cases: {int(totals['Confirmed_Cases'].iloc[0]):,}")
+            print(f"Total Deaths:          {int(totals['Deaths'].iloc[0]):,}")
+            print(f"Total Recovered:       {int(totals['Recovered'].iloc[0]):,}")
 
-            # Format and Print Results
-            print(f"Global Total Confirmed Cases: {int(global_totals.get('Confirmed_Cases', 0)):,}")
-            print(f"Global Total Deaths:          {int(global_totals.get('Deaths', 0)):,}")
-            print(f"Global Total Recovered Cases: {int(global_totals.get('Recovered', 0)):,}")
-            print("✅ Global statistics calculated and printed.")
-
-        except TypeError:
-            print("Error: One or more required columns are not numeric (e.g., 'Confirmed_Cases'). Ensure data types are correct.")
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-
-    #--------------------  utility ----  methods--------------------
+    # ================================================================
+    #   SAVE + RESET
+    # ================================================================
     def save_filtered_data(self, filename):
         """
         Saves the current self.filtered_data DataFrame to a specified CSV file.
@@ -313,6 +319,9 @@ class CovidDataAnalyzer:
         self.filtered_data = pd.DataFrame()
         print("Filtered_data has been reset.")
 
+    # ================================================================
+    #   AUTOMATED INSIGHTS
+    # ================================================================
     def generate_insights(self):
         """
         Automatically prints readable insights from the loaded dataset:
@@ -327,10 +336,10 @@ class CovidDataAnalyzer:
             print("Cannot generate insights: Dataset is empty.")
             return
 
-        required_columns = ['Country', 'Confirmed_Cases']
+        self.normalize_columns()
 
-        if not all(col in self.data.columns for col in required_columns):
-            print("Cannot generate insights: Dataset must contain 'Country' and 'Confirmed_Cases'.")
+        if 'Country' not in self.data.columns or 'Confirmed_Cases' not in self.data.columns:
+            print("Dataset missing required columns for insights.")
             return
 
         print("\n" + "="*55)
