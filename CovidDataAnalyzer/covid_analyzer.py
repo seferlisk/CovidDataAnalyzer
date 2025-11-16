@@ -187,22 +187,25 @@ class CovidDataAnalyzer:
     
         return self.filtered_data
 
-    def filter_by_date_range(self, start_date, end_date, date_column='Date'):
+    def filter_by_date_range(self, start_date, end_date, date_column='Date', use_filtered=True):
         """
         Filters the dataset (self.data) for records falling within the
         specified start_date and end_date range (inclusive).
+        If use_filtered=False, applies filtering to self.data instead of self.filtered_data.
 
         Parameters:
         start_date (str): The starting date for the filter (e.g., '2020-03-01').
         end_date (str): The ending date for the filter (e.g., '2020-04-30').
         date_column (str): The name of the date column in self.data (default 'Date').
         """
-        if self.data.empty:
-            print("Cannot filter data: The main dataset (self.data) is empty. Please load data first.")
+        df = self.filtered_data if use_filtered else self.data
+
+        if df.empty:
+            print("Dataset is empty. Load data or apply filters first.")
             return
 
-        if date_column not in self.data.columns:
-            print(f"Error: Date column '{date_column}' not found in the dataset.")
+        if date_column not in df.columns:
+            print(f"Error: '{date_column}' column not found.")
             return
 
         print("\n" + "="*50)
@@ -210,36 +213,21 @@ class CovidDataAnalyzer:
         print("="*50)
 
         try:
-            # 1. Convert Input Strings to Datetime Objects
-            # This is crucial for accurate comparison.
+            # Convert dates
             start_dt = pd.to_datetime(start_date)
             end_dt = pd.to_datetime(end_date)
 
-            # 2. Ensure the DataFrame Column is Datetime
-            # Convert the specified column to datetime format in place
-            self.data[date_column] = pd.to_datetime(self.data[date_column])
+            df[date_column] = pd.to_datetime(df[date_column])
 
-            # 3. Define and Apply the Boolean Condition (Inclusive Range)
-            # The filter includes both the start date and the end date.
-            condition = (self.data[date_column] >= start_dt) & \
-                        (self.data[date_column] <= end_dt)
+            # Filter
+            condition = (df[date_column] >= start_dt) & (df[date_column] <= end_dt)
+            self.filtered_data = df[condition].copy()
 
-            # 4. Apply the Filter and Save
-            self.filtered_data = self.data[condition].copy()
+            print("Filter complete.")
+            print(f"Result rows: {self.filtered_data.shape[0]}")
 
-            # 5. Report Results
-            original_rows = self.data.shape[0]
-            filtered_rows = self.filtered_data.shape[0]
-
-            print(f"Filtering data from {start_date} to {end_date}...")
-            print(f"Original dataset size: {original_rows} rows")
-            print(f"Filtered dataset size: {filtered_rows} rows")
-            print(f"✅ Filtered data saved successfully to **self.filtered_data**.")
-
-        except ValueError as e:
-            print(f"Error: Failed to convert date strings. Check if '{start_date}' or '{end_date}' are in a valid date format. Details: {e}")
         except Exception as e:
-            print(f"An unexpected error occurred during date filtering: {e}")
+            print(f"Error: {e}")
 
         return self.filtered_data
 
