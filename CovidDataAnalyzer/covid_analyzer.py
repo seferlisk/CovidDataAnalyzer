@@ -157,41 +157,34 @@ class CovidDataAnalyzer:
         print("          APPLYING HIGH-CASE FILTER")
         print("="*50)
 
-        # Rename required columns for filtering
-        self.data.rename(columns={
+        col_map = {
         'Country/Region': 'Country',
         'Confirmed': 'Confirmed_Cases'
-        }, inplace=True)
+        }
+        self.data.rename(columns=col_map, inplace=True)
 
-        # Ensure required columns exist before filtering to prevent errors
+        # --- Required columns ---
         required_cols = ['Confirmed_Cases', 'Deaths', 'Country']
-        missing_cols = [col for col in required_cols if col not in self.data.columns]
+        missing = [c for c in required_cols if c not in self.data.columns]
 
-        if missing_cols:
-            print(f"Error: Cannot filter. The following required columns are missing: {', '.join(missing_cols)}")
+        if missing:
+            print(f"Error: Cannot filter. Missing columns: {', '.join(missing)}")
             return
-
-        # 1. Define the Boolean Conditions
-        condition_cases = self.data['Confirmed_Cases'] > 100000
-        condition_deaths = self.data['Deaths'] > 5000
-        condition_country = self.data['Country'] != "Unknown"
-
-        combined_conditions = condition_cases & condition_deaths & condition_country
-
-        # 2. Apply the Filter and Save
-        self.filtered_data = self.data[combined_conditions].copy()
-
-        # Using .copy() is important to ensure self.filtered_data is an independent
-        # DataFrame and not just a "view" of self.data.
-
-        # 3. Report Results
-        original_rows = self.data.shape[0]
-        filtered_rows = self.filtered_data.shape[0]
-
-        print(f"Original dataset size: {original_rows} rows")
-        print(f"Filtered dataset size: {filtered_rows} rows")
-        print(f"Filtered data saved successfully to **self.filtered_data**.")
-
+    
+        # --- Apply filter conditions ---
+        cond_cases = self.data['Confirmed_Cases'] > 100_000
+        cond_deaths = self.data['Deaths'] > 5_000
+        cond_country = self.data['Country'] != "Unknown"
+    
+        combined = cond_cases & cond_deaths & cond_country
+    
+        # --- Save filtered results ---
+        self.filtered_data = self.data[combined].copy()
+    
+        print(f"Original size:  {self.data.shape[0]} rows")
+        print(f"Filtered size:  {self.filtered_data.shape[0]} rows")
+        print("Filtered data saved to self.filtered_data.")
+    
         return self.filtered_data
 
     def filter_by_date_range(self, start_date, end_date, date_column='Date'):
